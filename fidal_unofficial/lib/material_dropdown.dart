@@ -2,16 +2,18 @@ import 'package:flutter/material.dart';
 
 class DropdownField extends StatefulWidget {
   final Map<String, String> items;
-  final String defaultValue;
+  final String initialValue;
   final InputDecoration decoration;
   final TextStyle selectedTextStyle;
+  final void Function(String) onChanged;
 
   DropdownField(
       {Key key,
       @required this.items,
       @required this.selectedTextStyle,
-      @required this.defaultValue,
-      @required this.decoration})
+      @required this.initialValue,
+      @required this.decoration,
+      this.onChanged})
       : super(key: key);
 
   @override
@@ -22,17 +24,12 @@ class DropdownField extends StatefulWidget {
 
 class _DropdownFieldState extends State<DropdownField> {
   String val;
-  String text;
 
   @override
   Widget build(BuildContext context) {
     DropdownField widget = context.widget as DropdownField;
-
-    if (val == null) {
-      val = widget.defaultValue;
-      text = widget.items[val];
-    }
-
+    if (val == null) val = widget.initialValue;
+  
     return DropdownButtonFormField<String>(
       value: val,
       isDense: true,
@@ -45,7 +42,7 @@ class _DropdownFieldState extends State<DropdownField> {
         );
       }).toList(),
       selectedItemBuilder: (_) {
-       return widget.items.keys.map((String value) {
+        return widget.items.keys.map((String value) {
           return new DropdownMenuItem<String>(
             value: value,
             child: new Text(
@@ -56,9 +53,10 @@ class _DropdownFieldState extends State<DropdownField> {
         }).toList();
       },
       onChanged: (newVal) {
+        widget.onChanged(newVal);
+
         setState(() {
           val = newVal;
-          text = widget.items[newVal];
         });
       },
     );

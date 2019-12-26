@@ -1,6 +1,9 @@
 import 'package:fidal_unofficial/material_dropdown.dart';
+import 'package:fidal_unofficial/net/fidal_api.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
+import 'page.dart';
 
 class SearchFieldInputDecoration extends InputDecoration {
   SearchFieldInputDecoration({String hintText})
@@ -17,7 +20,30 @@ class SearchFieldTextStyle extends TextStyle {
   SearchFieldTextStyle() : super(color: Colors.white);
 }
 
-class SearchFields extends StatelessWidget {
+class SearchFields extends StatefulWidget {
+  final SearchInfoChangedCallback siChanged;
+
+  SearchFields({@required this.siChanged});
+
+  @override
+  State<StatefulWidget> createState() {
+    return SearchFieldsState();
+  }
+}
+
+class SearchFieldsState extends State<SearchFields> {
+  String year;
+  String month;
+  String level;
+  String region;
+  String type;
+  String category;
+
+  void notifyCallback() {
+    widget.siChanged.onSearchInfoChanged(
+        SearchInfo(year, month, level, region, type, category));
+  }
+
   static Map<String, String> genarateYearsMap() {
     int year = DateTime.now().year;
     Map<String, String> map = Map();
@@ -105,48 +131,73 @@ class SearchFields extends StatelessWidget {
           Container(
               width: 80,
               child: DropdownField(
-                key: Key("searchField_year"),
                 selectedTextStyle: SearchFieldTextStyle(),
                 items: genarateYearsMap(),
-                defaultValue: currentYear(),
+                initialValue: year == null ? currentYear() : year,
                 decoration: SearchFieldInputDecoration(hintText: "Year"),
+                onChanged: (newVal) {
+                  setState(() {
+                    year = newVal;
+                  });
+                  notifyCallback();
+                },
               )),
           Container(
               width: 120,
               child: DropdownField(
-                key: Key("searchField_month"),
                 selectedTextStyle: SearchFieldTextStyle(),
                 items: generateMonthsMap(),
-                defaultValue: currentMonth(),
+                initialValue: month == null ? currentMonth() : month,
                 decoration: SearchFieldInputDecoration(hintText: "Month"),
+                onChanged: (newVal) {
+                  setState(() {
+                    month = newVal;
+                  });
+                  notifyCallback();
+                },
               )),
           Container(
               width: 120,
               child: DropdownField(
-                key: Key("searchField_level"),
                 items: generateLevelsMap(),
-                defaultValue: "",
+                initialValue: level == null ? "" : level,
                 selectedTextStyle: SearchFieldTextStyle(),
                 decoration: SearchFieldInputDecoration(hintText: "Level"),
+                onChanged: (newVal) {
+                  setState(() {
+                    level = newVal;
+                  });
+                  notifyCallback();
+                },
               )),
           Container(
               width: 180,
               child: DropdownField(
-                key: Key("searchField_region"),
                 items: generateRegionsMap(),
-                defaultValue: "",
+                initialValue: region == null ? "" : region,
                 selectedTextStyle: SearchFieldTextStyle(),
                 decoration: SearchFieldInputDecoration(hintText: "Region"),
+                onChanged: (newVal) {
+                  setState(() {
+                    region = newVal;
+                  });
+                  notifyCallback();
+                },
               )),
           // TODO: Add types dropdown
           Container(
               width: 120,
               child: DropdownField(
-                key: Key("searchField_category"),
                 items: generateCategoriesMap(),
-                defaultValue: "",
+                initialValue: category == null ? "" : category,
                 selectedTextStyle: SearchFieldTextStyle(),
                 decoration: SearchFieldInputDecoration(hintText: "Category"),
+                onChanged: (newVal) {
+                  setState(() {
+                    category = newVal;
+                  });
+                  notifyCallback();
+                },
               ))
         ],
       ),
