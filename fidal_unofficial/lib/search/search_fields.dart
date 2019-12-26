@@ -3,8 +3,6 @@ import 'package:fidal_unofficial/net/fidal_api.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import 'page.dart';
-
 class SearchFieldInputDecoration extends InputDecoration {
   SearchFieldInputDecoration({String hintText})
       : super(
@@ -21,9 +19,9 @@ class SearchFieldTextStyle extends TextStyle {
 }
 
 class SearchFields extends StatefulWidget {
-  final SearchInfoChangedCallback siChanged;
+  final ValueNotifier<SearchInfo> searchInfoNotifier;
 
-  SearchFields({@required this.siChanged});
+  SearchFields(this.searchInfoNotifier);
 
   @override
   State<StatefulWidget> createState() {
@@ -32,16 +30,20 @@ class SearchFields extends StatefulWidget {
 }
 
 class SearchFieldsState extends State<SearchFields> {
-  String year;
-  String month;
-  String level;
-  String region;
-  String type;
-  String category;
+  String year = currentYear();
+  String month = currentMonth();
+  String level = "";
+  String region = "";
+  String type = "";
+  String category = "";
+
+  static SearchInfo defaultSearchInfo() {
+      return SearchInfo(currentYear(), currentMonth(), "", "", "", "");
+  }
 
   void notifyCallback() {
-    widget.siChanged.onSearchInfoChanged(
-        SearchInfo(year, month, level, region, type, category));
+    widget.searchInfoNotifier.value =
+        SearchInfo(year, month, level, region, type, category);
   }
 
   static Map<String, String> genarateYearsMap() {
@@ -133,7 +135,7 @@ class SearchFieldsState extends State<SearchFields> {
               child: DropdownField(
                 selectedTextStyle: SearchFieldTextStyle(),
                 items: genarateYearsMap(),
-                initialValue: year == null ? currentYear() : year,
+                initialValue: year,
                 decoration: SearchFieldInputDecoration(hintText: "Year"),
                 onChanged: (newVal) {
                   setState(() {
@@ -147,7 +149,7 @@ class SearchFieldsState extends State<SearchFields> {
               child: DropdownField(
                 selectedTextStyle: SearchFieldTextStyle(),
                 items: generateMonthsMap(),
-                initialValue: month == null ? currentMonth() : month,
+                initialValue: month,
                 decoration: SearchFieldInputDecoration(hintText: "Month"),
                 onChanged: (newVal) {
                   setState(() {
@@ -160,7 +162,7 @@ class SearchFieldsState extends State<SearchFields> {
               width: 120,
               child: DropdownField(
                 items: generateLevelsMap(),
-                initialValue: level == null ? "" : level,
+                initialValue: level,
                 selectedTextStyle: SearchFieldTextStyle(),
                 decoration: SearchFieldInputDecoration(hintText: "Level"),
                 onChanged: (newVal) {
@@ -174,7 +176,7 @@ class SearchFieldsState extends State<SearchFields> {
               width: 180,
               child: DropdownField(
                 items: generateRegionsMap(),
-                initialValue: region == null ? "" : region,
+                initialValue: region,
                 selectedTextStyle: SearchFieldTextStyle(),
                 decoration: SearchFieldInputDecoration(hintText: "Region"),
                 onChanged: (newVal) {
@@ -189,7 +191,7 @@ class SearchFieldsState extends State<SearchFields> {
               width: 120,
               child: DropdownField(
                 items: generateCategoriesMap(),
-                initialValue: category == null ? "" : category,
+                initialValue: category,
                 selectedTextStyle: SearchFieldTextStyle(),
                 decoration: SearchFieldInputDecoration(hintText: "Category"),
                 onChanged: (newVal) {

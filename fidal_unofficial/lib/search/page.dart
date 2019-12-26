@@ -4,22 +4,24 @@ import 'package:flutter/material.dart';
 import 'search_fields.dart';
 import 'search_results.dart';
 
-abstract class SearchInfoChangedCallback {
-  void onSearchInfoChanged(SearchInfo si);
-}
-
 class SearchPage extends StatelessWidget {
+  final FidalApi _api;
+
+  SearchPage(this._api);
+
   @override
   Widget build(BuildContext context) {
-    var sr = SearchResults();
+    ValueNotifier<SearchInfo> searchInfoNotifier = ValueNotifier(null);
+    SearchResults sr = SearchResults(_api, searchInfoNotifier);
+		SearchFields sf = SearchFields(searchInfoNotifier);
 
-    return Scaffold(
+		return Scaffold(
       appBar: AppBar(
         title: Text('Search!!'),
         elevation: 0,
       ),
       body: Column(
-        children: <Widget>[SearchFields(siChanged: sr), sr],
+        children: <Widget>[sf, Expanded(child: sr)],
       ),
     );
   }
