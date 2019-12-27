@@ -54,8 +54,10 @@ class SearchResultsState extends State<SearchResultsWidget> {
   void onAfterBuild(BuildContext context) {
     if (asc != null && data != null && asc.hasClients) {
       int index = SearchResult.findNearestToToday(data);
-      if (index != -1) asc.scrollToIndex(index, preferPosition: AutoScrollPosition.middle);
-      else asc.jumpTo(0);
+      if (index != -1)
+        asc.scrollToIndex(index, preferPosition: AutoScrollPosition.middle);
+      else
+        asc.jumpTo(0);
     }
   }
 
@@ -75,7 +77,7 @@ class SearchResultsState extends State<SearchResultsWidget> {
 
     return ListView.separated(
         scrollDirection: Axis.vertical,
-        separatorBuilder: (context, i) => Divider(color: Colors.black38),
+        separatorBuilder: (context, i) => Divider(color: Colors.black38, height: 2.0),
         controller: asc,
         itemCount: data.length,
         itemBuilder: (context, i) {
@@ -150,20 +152,22 @@ class SearchResultItemWidget extends StatelessWidget {
                   maxLines: 1, overflow: TextOverflow.ellipsis))
         ])));
 
-    return Padding(
-        child: Row(children: <Widget>[
-          Padding(
-              child: Center(
-                  child: Text(sr.level,
-                      style: TextStyle(
-                          fontSize: 32, color: getTypeColor(sr.type)))),
-              padding: EdgeInsets.only(right: 12)),
-          Expanded(
-              child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: widgetBody,
-          ))
-        ]),
-        padding: EdgeInsets.all(8.0));
+    return InkWell(
+        onTap: () {},
+        child: Padding(
+            child: Row(children: <Widget>[
+              Padding(
+                  child: Center(
+                      child: Text(sr.level,
+                          style: TextStyle(
+                              fontSize: 32, color: getTypeColor(sr.type)))),
+                  padding: EdgeInsets.only(right: 12)),
+              Expanded(
+                  child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: widgetBody,
+              ))
+            ]),
+            padding: EdgeInsets.all(8.0)));
   }
 }

@@ -2,6 +2,7 @@ import 'package:fidal_unofficial/material_dropdown.dart';
 import 'package:fidal_unofficial/net/fidal_api.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SearchFieldInputDecoration extends InputDecoration {
   SearchFieldInputDecoration({String hintText})
@@ -16,6 +17,77 @@ class SearchFieldInputDecoration extends InputDecoration {
 
 class SearchFieldTextStyle extends TextStyle {
   SearchFieldTextStyle() : super(color: Colors.white);
+}
+
+class YearDropdownWidget extends StatefulWidget {
+  final String initialValue;
+  final Function(String) onChanged;
+
+  YearDropdownWidget({this.initialValue, this.onChanged});
+
+  @override
+  State<StatefulWidget> createState() {
+    return YearDropdownState(year: initialValue);
+  }
+}
+
+class YearDropdownState extends State<YearDropdownWidget> {
+  String year;
+  Map<String, String> values;
+
+  YearDropdownState({this.year});
+
+  static Map<String, String> genarateYearsMapTemp() {
+    int year = DateTime.now().year;
+    Map<String, String> map = Map();
+    for (int i = 0; i <= 10; i++) {
+      int y = year - i;
+      map[y.toString()] = y.toString();
+    }
+    return map;
+  }
+
+  static Future<Map<String, String>> generateYearsMap() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    int yearNow = DateTime.now().year;
+    int minYear = prefs.containsKey("fidalSearch_minYear") ? int.tryParse(prefs.getString("fidalSearch_minYear")) : null;
+    int maxYear = prefs.containsKey("fidalSearch_maxYear") ? int.tryParse(prefs.getString("fidalSearch_maxYear")) : null;
+
+    if (minYear == null) minYear = yearNow - 9;
+    if (maxYear == null) maxYear = yearNow;
+    if (maxYear < yearNow) maxYear = yearNow;
+
+    Map<String, String> map = Map();
+    for (int i = maxYear; i >= minYear; i--) map[i.toString()] = i.toString();
+    return map;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+        generateYearsMap().then((Map<String, String> map) {
+            setState(() {
+              values = map;
+            });
+        });
+    });
+
+    return Container(
+        width: 80,
+        child: DropdownField(
+          selectedTextStyle: SearchFieldTextStyle(),
+          items: values == null ?  genarateYearsMapTemp() : values,
+          initialValue: widget.initialValue,
+          decoration: SearchFieldInputDecoration(hintText: "Year"),
+          onChanged: (newVal) {
+            widget.onChanged(newVal);
+            setState(() {
+              year = newVal;
+            });
+          },
+        ));
+  }
 }
 
 class SearchFieldsWidget extends StatefulWidget {
@@ -45,16 +117,6 @@ class SearchFieldsState extends State<SearchFieldsWidget> {
   void notifyCallback() {
     widget.searchInfoNotifier.value =
         SearchInfo(year, month, level, region, type, category, federal);
-  }
-
-  static Map<String, String> genarateYearsMap() {
-    int year = DateTime.now().year;
-    Map<String, String> map = Map();
-    for (int i = 0; i <= 10; i++) {
-      int y = year - i;
-      map[y.toString()] = y.toString();
-    }
-    return map;
   }
 
   static Map<String, String> generateMonthsMap() {
@@ -154,28 +216,22 @@ class SearchFieldsState extends State<SearchFieldsWidget> {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.only(left: 16.0, right: 16.0, bottom: 8.0),
+      padding: EdgeInsets.only(left: 8.0, right: 8.0, bottom: 8.0),
       color: Theme.of(context).accentColor,
       child: Wrap(
         alignment: WrapAlignment.center,
-        spacing: 16.0,
+        spacing: 8.0,
         runSpacing: 8.0,
         direction: Axis.horizontal,
         children: <Widget>[
-          Container(
-              width: 80,
-              child: DropdownField(
-                selectedTextStyle: SearchFieldTextStyle(),
-                items: genarateYearsMap(),
-                initialValue: year,
-                decoration: SearchFieldInputDecoration(hintText: "Year"),
-                onChanged: (newVal) {
-                  setState(() {
-                    year = newVal;
-                  });
-                  notifyCallback();
-                },
-              )),
+          YearDropdownWidget(
+              initialValue: year,
+              onChanged: (newVal) {
+                setState(() {
+                  year = newVal;
+                });
+                notifyCallback();
+              }),
           Container(
               width: 120,
               child: DropdownField(

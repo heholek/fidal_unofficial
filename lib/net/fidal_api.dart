@@ -6,6 +6,7 @@ import 'package:html/parser.dart' as html;
 import 'package:html/dom.dart' as html;
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SearchInfo {
   final String year;
@@ -126,6 +127,14 @@ class FidalApi {
       throw HttpException("Bad status code: ${resp.statusCode}!", uri: uri);
   }
 
+  static void checkMinMaxYear(html.Document doc) async {
+      var sel = doc.querySelector("#calendario #anno");
+
+      var pref = await SharedPreferences.getInstance();
+      await pref.setString("fidalSearch_minYear", sel.children[sel.children.length - 1].attributes["value"]);
+      await pref.setString("fidalSearch_maxYear", sel.children[0].attributes["value"]);
+  }
+
   Future<List<SearchResult>> search(SearchInfo si) async {
     String body = await _request("/calendario.php", {
       "anno": si.year,
@@ -142,8 +151,10 @@ class FidalApi {
         "Non sono disponibili manifestazioni con i filtri selezionati"))
       return List(0);
 
-    var items = html.parse(body).querySelectorAll(".table_btm tbody tr");
+    var doc = html.parse(body);
+    checkMinMaxYear(doc);
 
+    var items = doc.querySelectorAll(".table_btm tbody tr");
     List<SearchResult> list = List();
     for (var item in items) list.add(SearchResult.parse(si.year, item));
     return list;
