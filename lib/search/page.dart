@@ -12,8 +12,8 @@ class SearchPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     ValueNotifier<SearchInfo> searchInfoNotifier = ValueNotifier(null);
-    SearchResults sr = SearchResults(_api, searchInfoNotifier);
-		SearchFields sf = SearchFields(searchInfoNotifier);
+    SearchResultsWidget sr = SearchResultsWidget(_api, searchInfoNotifier);
+		SearchFieldsWidget sf = SearchFieldsWidget(searchInfoNotifier);
 
 		return Scaffold(
       appBar: AppBar(

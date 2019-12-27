@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:core';
 import 'dart:io';
 
 import 'package:html/parser.dart' as html;
@@ -30,6 +31,30 @@ class SearchResult {
 
   SearchResult(this._whenStart, this._whenEnd,
       {this.url, this.level, this.name, this.type, this.location, this.desc});
+
+  static int findNearestToToday(List<SearchResult> list) {
+    DateTime now = DateTime.now();
+
+    int nearest = -1;
+    int diff = -1;
+    for (int i = 0; i < list.length; i++) {
+      int d = (now.millisecondsSinceEpoch -
+              list[i]._whenStart.millisecondsSinceEpoch)
+          .abs();
+      if (nearest == -1) {
+        nearest = i;
+        diff = d;
+        continue;
+      }
+
+      if (d < diff) {
+        nearest = i;
+        diff = d;
+      }
+    }
+
+    return nearest;
+  }
 
   static SearchResult parse(String year, html.Element elm) {
     var when = elm.children[1].firstChild.text;

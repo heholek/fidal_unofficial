@@ -18,10 +18,10 @@ class SearchFieldTextStyle extends TextStyle {
   SearchFieldTextStyle() : super(color: Colors.white);
 }
 
-class SearchFields extends StatefulWidget {
+class SearchFieldsWidget extends StatefulWidget {
   final ValueNotifier<SearchInfo> searchInfoNotifier;
 
-  SearchFields(this.searchInfoNotifier);
+  SearchFieldsWidget(this.searchInfoNotifier);
 
   @override
   State<StatefulWidget> createState() {
@@ -29,7 +29,7 @@ class SearchFields extends StatefulWidget {
   }
 }
 
-class SearchFieldsState extends State<SearchFields> {
+class SearchFieldsState extends State<SearchFieldsWidget> {
   String year = currentYear();
   String month = currentMonth();
   String level = "";
