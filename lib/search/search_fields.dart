@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:fidal_unofficial/material_dropdown.dart';
 import 'package:fidal_unofficial/net/fidal_api.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'search_results.dart';
 
 class SearchFieldInputDecoration extends InputDecoration {
   SearchFieldInputDecoration({String hintText})
@@ -51,8 +54,12 @@ class YearDropdownState extends State<YearDropdownWidget> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
     int yearNow = DateTime.now().year;
-    int minYear = prefs.containsKey("fidalSearch_minYear") ? int.tryParse(prefs.getString("fidalSearch_minYear")) : null;
-    int maxYear = prefs.containsKey("fidalSearch_maxYear") ? int.tryParse(prefs.getString("fidalSearch_maxYear")) : null;
+    int minYear = prefs.containsKey("fidalSearch_minYear")
+        ? int.tryParse(prefs.getString("fidalSearch_minYear"))
+        : null;
+    int maxYear = prefs.containsKey("fidalSearch_maxYear")
+        ? int.tryParse(prefs.getString("fidalSearch_maxYear"))
+        : null;
 
     if (minYear == null) minYear = yearNow - 9;
     if (maxYear == null) maxYear = yearNow;
@@ -66,18 +73,18 @@ class YearDropdownState extends State<YearDropdownWidget> {
   @override
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-        generateYearsMap().then((Map<String, String> map) {
-            setState(() {
-              values = map;
-            });
+      generateYearsMap().then((Map<String, String> map) {
+        setState(() {
+          values = map;
         });
+      });
     });
 
     return Container(
         width: 80,
         child: DropdownField(
           selectedTextStyle: SearchFieldTextStyle(),
-          items: values == null ?  genarateYearsMapTemp() : values,
+          items: values == null ? genarateYearsMapTemp() : values,
           initialValue: widget.initialValue,
           decoration: SearchFieldInputDecoration(hintText: "Year"),
           onChanged: (newVal) {
@@ -91,9 +98,9 @@ class YearDropdownState extends State<YearDropdownWidget> {
 }
 
 class SearchFieldsWidget extends StatefulWidget {
-  final ValueNotifier<SearchInfo> searchInfoNotifier;
+  final StreamController<SearchStatus> streamController;
 
-  SearchFieldsWidget(this.searchInfoNotifier);
+  SearchFieldsWidget(this.streamController);
 
   @override
   State<StatefulWidget> createState() {
@@ -102,21 +109,17 @@ class SearchFieldsWidget extends StatefulWidget {
 }
 
 class SearchFieldsState extends State<SearchFieldsWidget> {
-  String year = currentYear();
-  String month = currentMonth();
+  String year = SearchInfo.currentYear();
+  String month = SearchInfo.currentMonth();
   String level = "";
   String region = "";
   String type = "";
   String category = "";
   bool federal = false;
 
-  static SearchInfo defaultSearchInfo() {
-    return SearchInfo(currentYear(), currentMonth(), "", "", "", "", false);
-  }
-
-  void notifyCallback() {
-    widget.searchInfoNotifier.value =
-        SearchInfo(year, month, level, region, type, category, federal);
+  void notifySearchInfoUpdated() {
+    widget.streamController.add(SearchStatus.startSearch(
+        SearchInfo(year, month, level, region, type, category, federal)));
   }
 
   static Map<String, String> generateMonthsMap() {
@@ -204,14 +207,6 @@ class SearchFieldsState extends State<SearchFieldsWidget> {
     };
   }
 
-  static String currentYear() {
-    return DateTime.now().year.toString();
-  }
-
-  static String currentMonth() {
-    return DateTime.now().month.toString();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -230,7 +225,7 @@ class SearchFieldsState extends State<SearchFieldsWidget> {
                 setState(() {
                   year = newVal;
                 });
-                notifyCallback();
+                notifySearchInfoUpdated();
               }),
           Container(
               width: 120,
@@ -243,7 +238,7 @@ class SearchFieldsState extends State<SearchFieldsWidget> {
                   setState(() {
                     month = newVal;
                   });
-                  notifyCallback();
+                  notifySearchInfoUpdated();
                 },
               )),
           Container(
@@ -257,7 +252,7 @@ class SearchFieldsState extends State<SearchFieldsWidget> {
                   setState(() {
                     level = newVal;
                   });
-                  notifyCallback();
+                  notifySearchInfoUpdated();
                 },
               )),
           Container(
@@ -271,7 +266,7 @@ class SearchFieldsState extends State<SearchFieldsWidget> {
                   setState(() {
                     region = newVal;
                   });
-                  notifyCallback();
+                  notifySearchInfoUpdated();
                 },
               )),
           Container(
@@ -285,7 +280,7 @@ class SearchFieldsState extends State<SearchFieldsWidget> {
                   setState(() {
                     type = newVal;
                   });
-                  notifyCallback();
+                  notifySearchInfoUpdated();
                 },
               )),
           Container(
@@ -299,7 +294,7 @@ class SearchFieldsState extends State<SearchFieldsWidget> {
                   setState(() {
                     category = newVal;
                   });
-                  notifyCallback();
+                  notifySearchInfoUpdated();
                 },
               )),
           Container(
@@ -317,7 +312,7 @@ class SearchFieldsState extends State<SearchFieldsWidget> {
                       setState(() {
                         federal = newVal;
                       });
-                      notifyCallback();
+                      notifySearchInfoUpdated();
                     }),
               ))
         ],

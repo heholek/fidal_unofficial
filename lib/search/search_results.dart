@@ -1,93 +1,97 @@
+import 'dart:async';
+
 import 'package:fidal_unofficial/net/fidal_api.dart';
-import 'package:fidal_unofficial/search/search_fields.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 
-class SearchResultsWidget extends StatefulWidget {
+class SearchResultsWidget extends StatelessWidget {
   final FidalApi _api;
-  final ValueNotifier<SearchInfo> _searchInfoNotifier;
-
-  SearchResultsWidget(this._api, this._searchInfoNotifier);
-
-  @override
-  State<StatefulWidget> createState() {
-    return SearchResultsState(_searchInfoNotifier, _api);
-  }
-}
-
-class SearchResultsState extends State<SearchResultsWidget> {
-  List<SearchResult> data;
-  bool error = false;
+  final StreamController<SearchStatus> streamController;
   AutoScrollController asc;
 
-  SearchResultsState(
-      ValueNotifier<SearchInfo> searchInfoNotifier, FidalApi api) {
-    searchInfoNotifier.addListener(() {
-      Future<List<SearchResult>> future = api.search(searchInfoNotifier.value);
-      future.then((List<SearchResult> result) {
-        setState(() {
-          error = false;
-          data = result;
+  SearchResultsWidget(this._api, this.streamController) {
+    streamController.stream.listen((status) {
+      if (status.loading) {
+        _api.search(status.info).then(
+            (result) => streamController.add(SearchStatus.successfull(result)),
+            onError: (e) {
+          print(e);
+          streamController.add(SearchStatus.error());
         });
-      }, onError: (e) {
-        print(e);
-        setState(() {
-          data = null;
-          error = true;
-        });
-      });
+      } else if (status.data != null) {
+        var index = SearchResult.findNearestToToday(status.data);
+        if (index == -1) asc.jumpTo(0);
+        else asc.scrollToIndex(index);
+      }
     });
   }
 
   @override
-  void initState() {
-    super.initState();
+  Widget build(BuildContext context) {
+    streamController.add(SearchStatus.startSearch(SearchInfo.defaultSearchInfo()));
+
     asc = AutoScrollController(
-        suggestedRowHeight: 48, // TODO: Change when layout is done
+        suggestedRowHeight: 76,
         viewportBoundaryGetter: () =>
             Rect.fromLTRB(0, 0, 0, MediaQuery.of(context).padding.bottom),
         axis: Axis.vertical);
-    widget._searchInfoNotifier.value = SearchFieldsState.defaultSearchInfo();
-  }
 
-  void onAfterBuild(BuildContext context) {
-    if (asc != null && data != null && asc.hasClients) {
-      int index = SearchResult.findNearestToToday(data);
-      if (index != -1)
-        asc.scrollToIndex(index, preferPosition: AutoScrollPosition.middle);
-      else
-        asc.jumpTo(0);
-    }
-  }
+    return StreamBuilder<SearchStatus>(
+        initialData: null,
+        stream: streamController.stream,
+        builder: (context, snap) {
+          if (snap.data == null || snap.data.loading)
+            return Center(child: CircularProgressIndicator());
 
-  @override
-  Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) => onAfterBuild(context));
+          SearchStatus ss = snap.data;
+          if (ss.error) {
+            return Center(
+                child: Text("An error occurred!",
+                    style: TextStyle(color: Colors.red)));
+          } else {
+            if (ss.data.length == 0)
+              return Center(child: Text("No data to display."));
 
-    if (error) {
-      return Center(
-          child:
-              Text("An error occurred!", style: TextStyle(color: Colors.red)));
-    }
-
-    if (data == null || data.length == 0) {
-      return Center(child: Text("No data to display."));
-    }
-
-    return ListView.separated(
-        scrollDirection: Axis.vertical,
-        separatorBuilder: (context, i) => Divider(color: Colors.black38, height: 2.0),
-        controller: asc,
-        itemCount: data.length,
-        itemBuilder: (context, i) {
-          return AutoScrollTag(
-              index: i,
-              controller: asc,
-              key: ValueKey(i),
-              child: SearchResultItemWidget(data[i]));
+            return ListView.separated(
+                scrollDirection: Axis.vertical,
+                separatorBuilder: (context, i) =>
+                    Divider(color: Colors.black38, height: 2.0),
+                controller: asc,
+                itemCount: ss.data.length,
+                itemBuilder: (context, i) {
+                  return AutoScrollTag(
+                      index: i,
+                      controller: asc,
+                      key: ValueKey(i),
+                      child: SearchResultItemWidget(ss.data[i]));
+                });
+          }
         });
   }
+}
+
+class SearchStatus {
+  final bool error;
+  final bool loading;
+  final SearchInfo info;
+  final List<SearchResult> data;
+
+  SearchStatus.startSearch(this.info)
+      : this.error = false,
+        this.loading = true,
+        this.data = null;
+
+  SearchStatus.error()
+      : this.error = true,
+        this.loading = false,
+        this.info = null,
+        this.data = null;
+
+  SearchStatus.successfull(this.data)
+      : this.error = false,
+        this.info = null,
+        this.loading = false;
 }
 
 class SearchResultItemWidget extends StatelessWidget {
@@ -115,7 +119,7 @@ class SearchResultItemWidget extends StatelessWidget {
       case "NORDIC WALKING":
         return Colors.black;
       default:
-        throw Exception("Unknown type $type");
+        throw ArgumentError("Unknown type $type");
     }
   }
 

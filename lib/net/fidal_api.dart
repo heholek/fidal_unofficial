@@ -17,6 +17,23 @@ class SearchInfo {
   final String category;
   final bool federal;
 
+  static String currentYear() {
+    return DateTime.now().year.toString();
+  }
+
+  static String currentMonth() {
+    return DateTime.now().month.toString();
+  }
+
+  SearchInfo.defaultSearchInfo()
+      : this.year = currentYear(),
+        this.month = currentMonth(),
+        this.level = "",
+        this.region = "",
+        this.type = "",
+        this.category = "",
+        this.federal = false;
+
   SearchInfo(this.year, this.month, this.level, this.region, this.type,
       this.category, this.federal);
 }
@@ -128,11 +145,13 @@ class FidalApi {
   }
 
   static void checkMinMaxYear(html.Document doc) async {
-      var sel = doc.querySelector("#calendario #anno");
+    var sel = doc.querySelector("#calendario #anno");
 
-      var pref = await SharedPreferences.getInstance();
-      await pref.setString("fidalSearch_minYear", sel.children[sel.children.length - 1].attributes["value"]);
-      await pref.setString("fidalSearch_maxYear", sel.children[0].attributes["value"]);
+    var pref = await SharedPreferences.getInstance();
+    await pref.setString("fidalSearch_minYear",
+        sel.children[sel.children.length - 1].attributes["value"]);
+    await pref.setString(
+        "fidalSearch_maxYear", sel.children[0].attributes["value"]);
   }
 
   Future<List<SearchResult>> search(SearchInfo si) async {
@@ -140,7 +159,7 @@ class FidalApi {
       "anno": si.year,
       "mese": si.month,
       "livello": si.level,
-      "regione": si.region,
+      "new_regione": si.region,
       "new_tipo": si.type,
       "new_categoria": si.category,
       "new_campionati": si.federal ? "1" : "0",
