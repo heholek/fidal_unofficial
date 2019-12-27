@@ -14,9 +14,10 @@ class SearchInfo {
   final String region;
   final String type;
   final String category;
+  final bool federal;
 
   SearchInfo(
-      this.year, this.month, this.level, this.region, this.type, this.category);
+      this.year, this.month, this.level, this.region, this.type, this.category, this.federal);
 }
 
 class SearchResult {
@@ -130,8 +131,13 @@ class FidalApi {
       "regione": si.region,
       "new_tipo": si.type,
       "new_categoria": si.category,
+      "new_campionati": si.federal ? "1" : "0",
       "submit": "Invia"
     });
+
+    if (body.contains("Non sono disponibili manifestazioni con i filtri selezionati"))
+      return List(0);
+
     var items = html.parse(body).querySelectorAll(".table_btm tbody tr");
 
     List<SearchResult> list = List();

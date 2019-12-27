@@ -36,14 +36,15 @@ class SearchFieldsState extends State<SearchFieldsWidget> {
   String region = "";
   String type = "";
   String category = "";
+  bool federal = false;
 
   static SearchInfo defaultSearchInfo() {
-      return SearchInfo(currentYear(), currentMonth(), "", "", "", "");
+    return SearchInfo(currentYear(), currentMonth(), "", "", "", "", false);
   }
 
   void notifyCallback() {
     widget.searchInfoNotifier.value =
-        SearchInfo(year, month, level, region, type, category);
+        SearchInfo(year, month, level, region, type, category, federal);
   }
 
   static Map<String, String> genarateYearsMap() {
@@ -64,6 +65,36 @@ class SearchFieldsState extends State<SearchFieldsWidget> {
       map[i.toString()] = df.format(dt);
     }
     return map;
+  }
+
+  static Map<String, String> generateTypesMap(String level) {
+    if (level == "" || level == "COD") {
+      return {
+        "": "Any",
+        "2": "Cross",
+        "3": "Indoor",
+        "8": "Marcia su strada",
+        "11": "Montagna",
+        "4": "Montagna/trail",
+        "13": "Nordic walking",
+        "5": "Outdoor",
+        "10": "Piazza e altri ambiti",
+        "6": "Strada",
+        "12": "Trail",
+        "7": "Ultramaratona",
+        "9": "Ultramaratona/trail"
+      };
+    } else {
+      return {
+        "": "Any",
+        "2": "Cross",
+        "3": "Indoor",
+        "4": "Montagna",
+        "5": "Pista",
+        "6": "Strada",
+        "7": "Trail"
+      };
+    }
   }
 
   static Map<String, String> generateLevelsMap() {
@@ -123,7 +154,8 @@ class SearchFieldsState extends State<SearchFieldsWidget> {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.only(left: 16.0, right: 16.0, bottom: 16.0),
+      padding: EdgeInsets.only(left: 16.0, right: 16.0, bottom: 8.0),
+      color: Theme.of(context).accentColor,
       child: Wrap(
         alignment: WrapAlignment.center,
         spacing: 16.0,
@@ -186,7 +218,20 @@ class SearchFieldsState extends State<SearchFieldsWidget> {
                   notifyCallback();
                 },
               )),
-          // TODO: Add types dropdown
+          Container(
+              width: 180,
+              child: DropdownField(
+                items: generateTypesMap(level),
+                initialValue: type,
+                selectedTextStyle: SearchFieldTextStyle(),
+                decoration: SearchFieldInputDecoration(hintText: "Type"),
+                onChanged: (newVal) {
+                  setState(() {
+                    type = newVal;
+                  });
+                  notifyCallback();
+                },
+              )),
           Container(
               width: 120,
               child: DropdownField(
@@ -200,10 +245,27 @@ class SearchFieldsState extends State<SearchFieldsWidget> {
                   });
                   notifyCallback();
                 },
+              )),
+          Container(
+              width: 160,
+              child: Theme(
+                data: Theme.of(context)
+                    .copyWith(unselectedWidgetColor: Colors.white),
+                child: CheckboxListTile(
+                    title: Text("Federal", style: SearchFieldTextStyle()),
+                    value: federal,
+                    checkColor: Theme.of(context).accentColor,
+                    activeColor: Colors.white,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    onChanged: (newVal) {
+                      setState(() {
+                        federal = newVal;
+                      });
+                      notifyCallback();
+                    }),
               ))
         ],
       ),
-      color: Colors.blue,
     );
   }
 }
