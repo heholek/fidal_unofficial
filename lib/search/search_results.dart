@@ -1,6 +1,7 @@
 import 'package:fidal_unofficial/net/fidal_api.dart';
 import 'package:fidal_unofficial/search/search_fields.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 
 class SearchResultsWidget extends StatefulWidget {
@@ -53,7 +54,8 @@ class SearchResultsState extends State<SearchResultsWidget> {
   void onAfterBuild(BuildContext context) {
     if (asc != null && data != null && asc.hasClients) {
       int index = SearchResult.findNearestToToday(data);
-      asc.scrollToIndex(index, preferPosition: AutoScrollPosition.middle);
+      if (index != -1) asc.scrollToIndex(index, preferPosition: AutoScrollPosition.middle);
+      else asc.jumpTo(0);
     }
   }
 
@@ -91,18 +93,77 @@ class SearchResultItemWidget extends StatelessWidget {
 
   SearchResultItemWidget(this.sr);
 
+  static Color getTypeColor(String type) {
+    switch (type) {
+      case "CROSS":
+      case "TRAIL":
+      case "MONTAGNA":
+      case "MONTAGNA/TRAIL":
+        return Colors.green;
+      case "STRADA":
+      case "MARCIA SU STRADA":
+      case "ULTRAMARATONA":
+        return Colors.grey;
+      case "OUTDOOR":
+        return Colors.red;
+      case "INDOOR":
+        return Colors.blue;
+      case "":
+      case "PIAZZA e altri ambiti":
+      case "NORDIC WALKING":
+        return Colors.black;
+      default:
+        throw Exception("Unknown type $type");
+    }
+  }
+
+  static String formatDates(SearchResult sr) {
+    if (sr.isSingleDay()) {
+      return DateFormat("EEE dd/MM").format(sr.getDay());
+    } else {
+      var df = DateFormat("EEE dd/MM");
+      return df.format(sr.getStartDay()) + " - " + df.format(sr.getEndDay());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    var widgetBody = <Widget>[
+      Text(sr.name, style: TextStyle(fontWeight: FontWeight.bold), maxLines: 2)
+    ];
+
+    if (sr.desc != null && sr.desc.length > 0) {
+      widgetBody.add(Text(sr.desc,
+          style: TextStyle(fontStyle: FontStyle.italic), maxLines: 2));
+    }
+
+    widgetBody.add(Padding(
+        padding: EdgeInsets.only(top: 2),
+        child: Row(children: <Widget>[
+          Icon(Icons.location_on),
+          Expanded(
+              child: Text(sr.location,
+                  maxLines: 1, overflow: TextOverflow.ellipsis)),
+          Icon(Icons.date_range),
+          Expanded(
+              child: Text(formatDates(sr),
+                  maxLines: 1, overflow: TextOverflow.ellipsis))
+        ])));
+
     return Padding(
-        child: Column(
-          children: <Widget>[
-            Text(sr.name, style: TextStyle(fontWeight: FontWeight.bold)),
-            Text(
-              sr.desc,
-              style: TextStyle(fontStyle: FontStyle.italic),
-            )
-          ],
-        ),
+        child: Row(children: <Widget>[
+          Padding(
+              child: Center(
+                  child: Text(sr.level,
+                      style: TextStyle(
+                          fontSize: 32, color: getTypeColor(sr.type)))),
+              padding: EdgeInsets.only(right: 12)),
+          Expanded(
+              child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: widgetBody,
+          ))
+        ]),
         padding: EdgeInsets.all(8.0));
   }
 }

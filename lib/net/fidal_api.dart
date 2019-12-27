@@ -16,8 +16,8 @@ class SearchInfo {
   final String category;
   final bool federal;
 
-  SearchInfo(
-      this.year, this.month, this.level, this.region, this.type, this.category, this.federal);
+  SearchInfo(this.year, this.month, this.level, this.region, this.type,
+      this.category, this.federal);
 }
 
 class SearchResult {
@@ -39,6 +39,9 @@ class SearchResult {
     int nearest = -1;
     int diff = -1;
     for (int i = 0; i < list.length; i++) {
+      if (now.year != list[i]._whenStart.year ||
+          now.month != list[i]._whenStart.month) continue;
+
       int d = (now.millisecondsSinceEpoch -
               list[i]._whenStart.millisecondsSinceEpoch)
           .abs();
@@ -135,7 +138,8 @@ class FidalApi {
       "submit": "Invia"
     });
 
-    if (body.contains("Non sono disponibili manifestazioni con i filtri selezionati"))
+    if (body.contains(
+        "Non sono disponibili manifestazioni con i filtri selezionati"))
       return List(0);
 
     var items = html.parse(body).querySelectorAll(".table_btm tbody tr");
