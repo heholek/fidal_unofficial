@@ -19,7 +19,7 @@ class SearchResultsWidget extends StatelessWidget {
           print(e);
           streamController.add(SearchStatus.error());
         });
-      } else if (status.data != null) {
+      } else if (status.data != null && asc.hasClients) {
         var index = SearchResult.findNearestToToday(status.data);
         if (index == -1) asc.jumpTo(0);
         else asc.scrollToIndex(index);

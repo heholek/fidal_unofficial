@@ -7,7 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'search_results.dart';
 
-class SearchFieldInputDecoration extends InputDecoration {
+class SearchFieldInputDecoration extends InputDecoration { // TODO: Add field name in decoration
   SearchFieldInputDecoration({String hintText})
       : super(
             hintText: hintText,
@@ -86,7 +86,7 @@ class YearDropdownState extends State<YearDropdownWidget> {
           selectedTextStyle: SearchFieldTextStyle(),
           items: values == null ? genarateYearsMapTemp() : values,
           initialValue: widget.initialValue,
-          decoration: SearchFieldInputDecoration(hintText: "Year"),
+          decoration: SearchFieldInputDecoration(hintText: "Anno"),
           onChanged: (newVal) {
             widget.onChanged(newVal);
             setState(() {
@@ -135,7 +135,7 @@ class SearchFieldsState extends State<SearchFieldsWidget> {
   static Map<String, String> generateTypesMap(String level) {
     if (level == "" || level == "COD") {
       return {
-        "": "Any",
+        "": "--",
         "2": "Cross",
         "3": "Indoor",
         "8": "Marcia su strada",
@@ -151,7 +151,7 @@ class SearchFieldsState extends State<SearchFieldsWidget> {
       };
     } else {
       return {
-        "": "Any",
+        "": "--",
         "2": "Cross",
         "3": "Indoor",
         "4": "Montagna",
@@ -163,12 +163,12 @@ class SearchFieldsState extends State<SearchFieldsWidget> {
   }
 
   static Map<String, String> generateLevelsMap() {
-    return {"": "Any", "COD": "National", "REG": "Regional"};
+    return {"": "--", "COD": "Nazionale", "REG": "Regionale"};
   }
 
   static Map<String, String> generateRegionsMap() {
     return {
-      "": "Any",
+      "": "--",
       "ABRUZZO": "Abruzzo",
       "ALTOADIGE": "Alto Adige",
       "BASILICATA": "Basilicata",
@@ -195,7 +195,7 @@ class SearchFieldsState extends State<SearchFieldsWidget> {
 
   static Map<String, String> generateCategoriesMap() {
     return {
-      "": "Any",
+      "": "--",
       "ESO": "Esordienti",
       "RAG": "Ragazzi",
       "CAD": "Cadetti",
@@ -233,7 +233,7 @@ class SearchFieldsState extends State<SearchFieldsWidget> {
                 selectedTextStyle: SearchFieldTextStyle(),
                 items: generateMonthsMap(),
                 initialValue: month,
-                decoration: SearchFieldInputDecoration(hintText: "Month"),
+                decoration: SearchFieldInputDecoration(hintText: "Mese"),
                 onChanged: (newVal) {
                   setState(() {
                     month = newVal;
@@ -247,7 +247,7 @@ class SearchFieldsState extends State<SearchFieldsWidget> {
                 items: generateLevelsMap(),
                 initialValue: level,
                 selectedTextStyle: SearchFieldTextStyle(),
-                decoration: SearchFieldInputDecoration(hintText: "Level"),
+                decoration: SearchFieldInputDecoration(hintText: "Livello"),
                 onChanged: (newVal) {
                   setState(() {
                     level = newVal;
@@ -261,7 +261,7 @@ class SearchFieldsState extends State<SearchFieldsWidget> {
                 items: generateRegionsMap(),
                 initialValue: region,
                 selectedTextStyle: SearchFieldTextStyle(),
-                decoration: SearchFieldInputDecoration(hintText: "Region"),
+                decoration: SearchFieldInputDecoration(hintText: "Regione"),
                 onChanged: (newVal) {
                   setState(() {
                     region = newVal;
@@ -275,7 +275,7 @@ class SearchFieldsState extends State<SearchFieldsWidget> {
                 items: generateTypesMap(level),
                 initialValue: type,
                 selectedTextStyle: SearchFieldTextStyle(),
-                decoration: SearchFieldInputDecoration(hintText: "Type"),
+                decoration: SearchFieldInputDecoration(hintText: "Tipologia"),
                 onChanged: (newVal) {
                   setState(() {
                     type = newVal;
@@ -289,7 +289,7 @@ class SearchFieldsState extends State<SearchFieldsWidget> {
                 items: generateCategoriesMap(),
                 initialValue: category,
                 selectedTextStyle: SearchFieldTextStyle(),
-                decoration: SearchFieldInputDecoration(hintText: "Category"),
+                decoration: SearchFieldInputDecoration(hintText: "Categoria"),
                 onChanged: (newVal) {
                   setState(() {
                     category = newVal;
@@ -303,7 +303,7 @@ class SearchFieldsState extends State<SearchFieldsWidget> {
                 data: Theme.of(context)
                     .copyWith(unselectedWidgetColor: Colors.white),
                 child: CheckboxListTile(
-                    title: Text("Federal", style: SearchFieldTextStyle()),
+                    title: Text("Camp. federale", style: SearchFieldTextStyle()),
                     value: federal,
                     checkColor: Theme.of(context).accentColor,
                     activeColor: Colors.white,

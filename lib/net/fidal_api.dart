@@ -82,8 +82,12 @@ class SearchResult {
     var when = elm.children[1].firstChild.text;
     var a = elm.children[3].firstChild;
 
-    DateFormat df = DateFormat("dd/MM/yyyy");
+    var level = elm.children[2].firstChild.text;
+    if (level == "R" &&
+        elm.children[2].firstChild.attributes["title"].contains("OPEN"))
+      level += "*";
 
+    DateFormat df = DateFormat("dd/MM/yyyy");
     var whenStart;
     var whenEnd;
     if (when.contains("-")) {
@@ -98,7 +102,7 @@ class SearchResult {
     }
 
     return SearchResult(whenStart, whenEnd,
-        level: elm.children[2].firstChild.text,
+        level: level,
         type: elm.children[4].text,
         location: elm.children[5].text,
         name: a.text,
