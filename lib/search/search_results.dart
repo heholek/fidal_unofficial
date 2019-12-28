@@ -22,15 +22,18 @@ class SearchResultsWidget extends StatelessWidget {
         });
       } else if (status.data != null && asc.hasClients) {
         var index = SearchResult.findNearestToToday(status.data);
-        if (index == -1) asc.jumpTo(0);
-        else asc.scrollToIndex(index); // TODO: Not working
+        if (index == -1)
+          asc.jumpTo(0);
+        else
+          asc.scrollToIndex(index); // TODO: Not working
       }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    streamController.add(SearchStatus.startSearch(SearchInfo.defaultSearchInfo()));
+    streamController
+        .add(SearchStatus.startSearch(SearchInfo.defaultSearchInfo()));
 
     asc = AutoScrollController(
         suggestedRowHeight: 76,
@@ -65,7 +68,7 @@ class SearchResultsWidget extends StatelessWidget {
                       index: i,
                       controller: asc,
                       key: ValueKey(i),
-                      child: SearchResultItemWidget(ss.data[i]));
+                      child: SearchResultItemWidget(_api, ss.data[i]));
                 });
           }
         });
@@ -97,8 +100,9 @@ class SearchStatus {
 
 class SearchResultItemWidget extends StatelessWidget {
   final SearchResult sr;
+  final FidalApi _api;
 
-  SearchResultItemWidget(this.sr);
+  SearchResultItemWidget(this._api, this.sr);
 
   static Color getTypeColor(String type) {
     switch (type) {
@@ -159,7 +163,7 @@ class SearchResultItemWidget extends StatelessWidget {
 
     return InkWell(
         onTap: () {
-          showEventBottomSheet(context, sr);
+          showEventBottomSheet(context, _api, sr);
         },
         child: Padding(
             child: Row(children: <Widget>[

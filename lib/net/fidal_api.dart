@@ -38,7 +38,31 @@ class SearchInfo {
       this.category, this.federal);
 }
 
-class SearchResult {
+mixin WhenStartEndMixin {
+  DateTime _whenStart;
+  DateTime _whenEnd;
+
+  DateTime getDay() {
+    assert(isSingleDay());
+    return _whenStart;
+  }
+
+  DateTime getStartDay() {
+    assert(!isSingleDay());
+    return _whenStart;
+  }
+
+  DateTime getEndDay() {
+    assert(!isSingleDay());
+    return _whenEnd;
+  }
+
+  bool isSingleDay() {
+    return _whenEnd == null;
+  }
+}
+
+class SearchResult with WhenStartEndMixin {
   final DateTime _whenStart;
   final DateTime _whenEnd;
   final String level;
@@ -110,23 +134,187 @@ class SearchResult {
         desc: elm.children[3].children[2].text);
   }
 
-  DateTime getDay() {
-    assert(isSingleDay());
-    return _whenStart;
+  String _urlPath() {
+    var regexp = RegExp(r'\/(\d*)$');
+
+    var uri = Uri.parse(url);
+    if (!regexp.hasMatch(uri.path)) return uri.path;
+
+    if (level == "R" || level == "R*" || level == "P")
+      return uri.path.replaceAllMapped(regexp, (m) => "/REG${m[1]}");
+    else
+      return uri.path.replaceAllMapped(regexp, (m) => "/COD${m[1]}");
+  }
+}
+
+enum EventSex { MALE, FEMALE, BOTH }
+
+class ApprovedRoute {
+  final bool yesNo;
+  final String type;
+
+  ApprovedRoute(this.yesNo, this.type);
+
+  static ApprovedRoute parse(html.Element elm) {
+    if (elm == null) return null;
+
+    var m = RegExp(r'(.*)\s\(Tipologia\s(.*)\)').firstMatch(elm.text.trim());
+    var type = m[2];
+    if (type == "-") type = null;
+    return ApprovedRoute(m[1] == "Si", type);
+  }
+}
+
+class LinkedString {
+  final String text;
+  final String url;
+
+  LinkedString(this.text, this.url);
+
+  static LinkedString parse(Map<String, html.Element> map, String key) {
+    var val = map[key];
+    if (val == null) return null;
+
+    var a = val.querySelector("a");
+    if (a != null)
+      return LinkedString(a.text.trim(), a.attributes["href"]);
+    else
+      return LinkedString(val.text.trim(), null);
+  }
+}
+
+class EventInfo with WhenStartEndMixin {
+  final String title;
+  final String desc;
+  final DateTime _whenStart;
+  final DateTime _whenEnd;
+  final String type;
+  final String level;
+  final String location;
+  final List<String> categories;
+  final String email;
+  final LinkedString website;
+  final EventSex sex;
+  final String authority;
+  final LinkedString organizer;
+  final LinkedString organization;
+  final ApprovedRoute approvedRoute;
+  final List<String> infoUrls;
+  final List<String> attachmentUrls;
+  final String resultsUrl;
+
+  EventInfo(
+      this.title,
+      this.desc,
+      this._whenStart,
+      this._whenEnd,
+      this.type,
+      this.authority,
+      this.level,
+      this.organizer,
+      this.organization,
+      this.email,
+      this.website,
+      this.sex,
+      this.location,
+      this.categories,
+      this.approvedRoute,
+      this.resultsUrl,
+      this.infoUrls,
+      this.attachmentUrls);
+
+  static Map<String, html.Element> _mapElements(List<html.Element> elms) {
+    var map = Map<String, html.Element>();
+    for (var elm in elms) {
+      if (elm.children.length != 2) continue;
+      map[elm.children[0].text.toUpperCase()] = elm.children[1];
+    }
+    return map;
   }
 
-  DateTime getStartDay() {
-    assert(!isSingleDay());
-    return _whenStart;
+  static String optText(Map<String, html.Element> map, String key) {
+    var val = map[key];
+    return val == null ? null : val.text.trim();
   }
 
-  DateTime getEndDay() {
-    assert(!isSingleDay());
-    return _whenEnd;
+  static List<String> parseMultipleLinks(html.Element elm) {
+    var list = List<String>();
+    if (elm == null) return list;
+
+    for (var link in elm.querySelectorAll("a"))
+      list.add(link.attributes["href"]);
+    return list;
   }
 
-  bool isSingleDay() {
-    return _whenEnd == null;
+  static EventInfo parse(html.Document doc) {
+    var title = doc.querySelector(".section .text-holder > h1").text;
+    var desc = doc.querySelector(".section .text-holder > label").text;
+
+    var map = _mapElements(doc
+        .querySelector(
+            ".section .text-holder .common_section > .table-responsive > table > tbody")
+        .children);
+
+    var whenStr = map["DATA SVOLGIMENTO"].text.trim();
+    var whenStart;
+    var whenEnd;
+    if (whenStr.contains(" - ")) {
+      var df = DateFormat("dd/MM/yyyy");
+      var split = whenStr.split(" - ");
+      whenStart = df.parse(split[0]);
+      whenEnd = df.parse(split[1]);
+    } else {
+      whenStart = DateFormat("dd/MM/yyyy").parse(whenStr);
+      whenEnd = null;
+    }
+
+    EventSex sex;
+    var sexStr = map["SESSO"].text.trim();
+    switch (sexStr) {
+      case "M":
+        sex = EventSex.MALE;
+        break;
+      case "F":
+        sex = EventSex.FEMALE;
+        break;
+      case "M/F":
+        sex = EventSex.BOTH;
+        break;
+      default:
+        throw ArgumentError("Unknown sex $sexStr");
+    }
+
+    var categories;
+    if (map.containsKey("CATEGORIA")) {
+      categories = List<String>();
+      for (var m in RegExp(r'[\n\s]*(.{3}) - .*?')
+          .allMatches(map["CATEGORIA"].text)) categories.add(m[1]);
+    }
+
+    var resultsUrl;
+    var results = map["ISCRITTI/RISULTATI"];
+    if (results != null)
+      resultsUrl = results.querySelector("a").attributes["href"];
+
+    return EventInfo(
+        title,
+        desc.trim().isEmpty ? null : desc.trim(),
+        whenStart,
+        whenEnd,
+        map["TIPOLOGIA"].text,
+        optText(map, "ENTE"),
+        map["LIVELLO"].text,
+        LinkedString.parse(map, "ORGANIZZATORE"),
+        LinkedString.parse(map, "ORGANIZZAZIONE"),
+        optText(map, "EMAIL"),
+        LinkedString.parse(map, "SITO WEB"),
+        sex,
+        map["LOCALITÀ"].querySelector("a").text,
+        categories,
+        ApprovedRoute.parse(map["PERCORSO OMOLOGATO"]),
+        resultsUrl,
+        parseMultipleLinks(map["INFORMAZIONI"]),
+        parseMultipleLinks(map["ALLEGATI"]));
   }
 }
 
@@ -181,5 +369,11 @@ class FidalApi {
     List<SearchResult> list = List();
     for (var item in items) list.add(SearchResult.parse(si.year, item));
     return list;
+  }
+
+  Future<EventInfo> eventInfo(SearchResult sr) async {
+    String body = await _request(sr._urlPath());
+    var doc = html.parse(body);
+    return EventInfo.parse(doc);
   }
 }
