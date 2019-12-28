@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:fidal_unofficial/net/fidal_api.dart';
+import 'package:fidal_unofficial/search/event_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
@@ -22,7 +23,7 @@ class SearchResultsWidget extends StatelessWidget {
       } else if (status.data != null && asc.hasClients) {
         var index = SearchResult.findNearestToToday(status.data);
         if (index == -1) asc.jumpTo(0);
-        else asc.scrollToIndex(index);
+        else asc.scrollToIndex(index); // TODO: Not working
       }
     });
   }
@@ -157,7 +158,9 @@ class SearchResultItemWidget extends StatelessWidget {
         ])));
 
     return InkWell(
-        onTap: () {},
+        onTap: () {
+          showEventBottomSheet(context, sr);
+        },
         child: Padding(
             child: Row(children: <Widget>[
               Padding(

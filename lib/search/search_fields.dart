@@ -7,9 +7,11 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'search_results.dart';
 
-class SearchFieldInputDecoration extends InputDecoration { // TODO: Add field name in decoration
+class SearchFieldInputDecoration extends InputDecoration {
   SearchFieldInputDecoration({String hintText})
       : super(
+            labelText: hintText,
+            labelStyle: SearchFieldTextStyle(),
             hintText: hintText,
             contentPadding: EdgeInsets.all(8.0),
             enabledBorder: OutlineInputBorder(
@@ -211,7 +213,7 @@ class SearchFieldsState extends State<SearchFieldsWidget> {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.only(left: 8.0, right: 8.0, bottom: 8.0),
+      padding: EdgeInsets.only(left: 8, right: 8, bottom: 4, top: 4),
       color: Theme.of(context).accentColor,
       child: Wrap(
         alignment: WrapAlignment.center,
@@ -303,7 +305,8 @@ class SearchFieldsState extends State<SearchFieldsWidget> {
                 data: Theme.of(context)
                     .copyWith(unselectedWidgetColor: Colors.white),
                 child: CheckboxListTile(
-                    title: Text("Camp. federale", style: SearchFieldTextStyle()),
+                    title:
+                        Text("Camp. federale", style: SearchFieldTextStyle()),
                     value: federal,
                     checkColor: Theme.of(context).accentColor,
                     activeColor: Colors.white,

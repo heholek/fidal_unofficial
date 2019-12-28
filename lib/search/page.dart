@@ -29,6 +29,7 @@ class SearchPage extends StatelessWidget {
     SearchFieldsWidget sf = SearchFieldsWidget(_streamController);
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text('Search!!'),
         elevation: 0,
@@ -68,6 +69,8 @@ class SearchPage extends StatelessWidget {
                               coloredSquare(Colors.blue),
                               TextSpan(text: ' Indoor\n\n'),
                               // Letters
+                               bigLetter('P'),
+                              TextSpan(text: 'rovinciale\n'),
                               bigLetter('R'),
                               TextSpan(text: 'egionale\n'),
                               bigLetter('R*'),
@@ -76,12 +79,12 @@ class SearchPage extends StatelessWidget {
                               TextSpan(text: 'ronze\n'),
                               bigLetter('S'),
                               TextSpan(text: 'ilver\n'),
-                              bigLetter('P'),
-                              TextSpan(text: 'rovinciale\n'),
                               bigLetter('G'),
                               TextSpan(text: 'old\n'),
                               bigLetter('N'),
-                              TextSpan(text: 'azionale\n')
+                              TextSpan(text: 'azionale\n'),
+                              bigLetter('I'),
+                              TextSpan(text: 'nternazionale\n')
                             ])));
                   });
             },
