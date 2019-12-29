@@ -21,7 +21,7 @@ class SearchResultsWidget extends StatelessWidget {
           streamController.add(SearchStatus.error());
         });
       } else if (status.data != null && asc.hasClients) {
-        var index = SearchResult.findNearestToToday(status.data);
+        var index = BasicEventInfo.findNearestToToday(status.data);
         if (index == -1)
           asc.jumpTo(0);
         else
@@ -79,7 +79,7 @@ class SearchStatus {
   final bool error;
   final bool loading;
   final SearchInfo info;
-  final List<SearchResult> data;
+  final List<BasicEventInfo> data;
 
   SearchStatus.startSearch(this.info)
       : this.error = false,
@@ -99,7 +99,7 @@ class SearchStatus {
 }
 
 class SearchResultItemWidget extends StatelessWidget {
-  final SearchResult sr;
+  final BasicEventInfo sr;
   final FidalApi _api;
 
   SearchResultItemWidget(this._api, this.sr);
@@ -128,7 +128,7 @@ class SearchResultItemWidget extends StatelessWidget {
     }
   }
 
-  static String formatDates(SearchResult sr) {
+  static String formatDates(BasicEventInfo sr) {
     if (sr.isSingleDay()) {
       return DateFormat("EEE dd/MM").format(sr.getDay());
     } else {

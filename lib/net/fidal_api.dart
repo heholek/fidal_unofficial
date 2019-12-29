@@ -62,7 +62,7 @@ mixin WhenStartEndMixin {
   }
 }
 
-class SearchResult with WhenStartEndMixin {
+class BasicEventInfo with WhenStartEndMixin {
   final DateTime _whenStart;
   final DateTime _whenEnd;
   final String level;
@@ -72,10 +72,10 @@ class SearchResult with WhenStartEndMixin {
   final String location;
   final String url;
 
-  SearchResult(this._whenStart, this._whenEnd,
+  BasicEventInfo(this._whenStart, this._whenEnd,
       {this.url, this.level, this.name, this.type, this.location, this.desc});
 
-  static int findNearestToToday(List<SearchResult> list) {
+  static int findNearestToToday(List<BasicEventInfo> list) {
     DateTime now = DateTime.now();
 
     int nearest = -1;
@@ -102,7 +102,8 @@ class SearchResult with WhenStartEndMixin {
     return nearest;
   }
 
-  static SearchResult parse(String year, html.Element elm) {
+  static BasicEventInfo parse(
+      String year, html.Element elm, String Function(html.Element) descParser) {
     var when = elm.children[1].firstChild.text;
     var a = elm.children[3].firstChild;
 
@@ -125,10 +126,10 @@ class SearchResult with WhenStartEndMixin {
       whenEnd = null;
     }
 
-    var desc = elm.children[3].children[2].text;
-    if (desc.trim().isEmpty) desc = null;
+    var desc = descParser(elm);
+    if (desc != null && desc.trim().isEmpty) desc = null;
 
-    return SearchResult(whenStart, whenEnd,
+    return BasicEventInfo(whenStart, whenEnd,
         level: level,
         type: elm.children[4].text,
         location: elm.children[5].text,
@@ -321,6 +322,145 @@ class EventInfo with WhenStartEndMixin {
   }
 }
 
+class BasicAthleteInfo {
+  final String name;
+  final String surname;
+  final String url;
+  final String year;
+
+  BasicAthleteInfo(this.name, this.surname, this.url, this.year);
+}
+
+class Athletes {
+  final Map<String, List<BasicAthleteInfo>> map;
+
+  Athletes(this.map);
+
+  static Map<String, List<BasicAthleteInfo>> _parse(html.Element tab) {
+    var map = Map<String, List<BasicAthleteInfo>>();
+    String lastCategory;
+    for (var elm in tab.children) {
+      if (elm.localName == "h3") {
+        lastCategory = RegExp(r'.*\s\((.*)\)').firstMatch(elm.text)[1];
+        continue;
+      }
+
+      if (elm.localName == "table" && lastCategory != null) {
+        List<BasicAthleteInfo> list = map[lastCategory];
+        if (list == null) {
+          list = List();
+          map[lastCategory] = list;
+        }
+
+        var rows = elm.querySelectorAll("tbody tr");
+        for (var row in rows) {
+          var a = row.querySelector(".col1 a");
+          list.add(BasicAthleteInfo(row.children[1].text, a.text,
+              a.attributes["href"], row.children[2].text));
+        }
+
+        lastCategory = null;
+      }
+    }
+
+    return map;
+  }
+
+  static Athletes parse(html.Element tab2, html.Element tab3) {
+    var list = _parse(tab2);
+    list.addAll(_parse(tab3));
+    return Athletes(list);
+  }
+}
+
+class ClubHistoryItem {
+  final String year;
+  final String name;
+  final String president;
+
+  ClubHistoryItem(this.year, this.name, this.president);
+
+  static ClubHistoryItem parse(html.Element elm) {
+    return ClubHistoryItem(
+        elm.children[0].text, elm.children[1].text, elm.children[2].text);
+  }
+}
+
+class ClubInfo {
+  final String name;
+  final String president;
+  final String location;
+  final String website;
+  final int maleAthletes;
+  final int femaleAthletes;
+  final String region;
+  final String province;
+  final String phone;
+  final String email;
+  final Athletes athletes;
+  final List<BasicEventInfo> events;
+  final List<ClubHistoryItem> history;
+
+  ClubInfo(
+      this.name,
+      this.location,
+      this.website,
+      this.president,
+      this.maleAthletes,
+      this.femaleAthletes,
+      this.region,
+      this.province,
+      this.phone,
+      this.email,
+      this.athletes,
+      this.events,
+      this.history);
+
+  static String substringAfterColon(String str) {
+    int index = str.indexOf(":");
+    return str.substring(index + 1).trim();
+  }
+
+  static ClubInfo parse(html.Document doc) {
+    var clubData = doc.querySelector(".dati-societa");
+    var moreClubData = clubData.querySelectorAll(".datiatleti tbody td");
+
+    var emailSpan = moreClubData[2].querySelector("span");
+    var email = emailSpan.nodes[0].text + '@' + emailSpan.nodes[2].text;
+
+    var tab2 = doc.querySelector("#tab2 .tab-holder");
+    var tab3 = doc.querySelector("#tab3 .tab-holder");
+    var tab4 = doc.querySelector("#tab4 .tab-holder");
+    var tab5 = doc.querySelector("#tab5 .tab-holder");
+
+    var yearNow = DateTime.now().year.toString();
+    List<BasicEventInfo> events = List();
+    var eventRows = tab4.querySelectorAll("tbody tr");
+    for (var row in eventRows)
+      events.add(BasicEventInfo.parse(
+          yearNow, row, (elm) => elm.children[3].firstChild.nodes[2].text));
+
+    List<ClubHistoryItem> historyItems = List();
+    var historyRows = tab5.querySelectorAll("tbody tr");
+    for (var row in historyRows) historyItems.add(ClubHistoryItem.parse(row));
+
+    return ClubInfo(
+        clubData.children[0].text,
+        substringAfterColon(clubData.children[1].text),
+        clubData.children[3].querySelector("a").attributes["href"],
+        substringAfterColon(clubData.children[5].text),
+        int.parse(substringAfterColon(clubData.children[9].text)),
+        int.parse(substringAfterColon(clubData.children[11].text)),
+        substringAfterColon(moreClubData[0].text),
+        substringAfterColon(moreClubData[1].text),
+        substringAfterColon(moreClubData[3].text),
+        email.trim(),
+        Athletes.parse(tab2, tab3),
+        events,
+        historyItems);
+  }
+}
+
 class FidalApi {
   static final String _domain = "www.fidal.it";
   final http.Client _client;
@@ -349,7 +489,7 @@ class FidalApi {
         "fidalSearch_maxYear", sel.children[0].attributes["value"]);
   }
 
-  Future<List<SearchResult>> search(SearchInfo si) async {
+  Future<List<BasicEventInfo>> search(SearchInfo si) async {
     String body = await _request("/calendario.php", {
       "anno": si.year,
       "mese": si.month,
@@ -369,14 +509,22 @@ class FidalApi {
     checkMinMaxYear(doc);
 
     var items = doc.querySelectorAll(".table_btm tbody tr");
-    List<SearchResult> list = List();
-    for (var item in items) list.add(SearchResult.parse(si.year, item));
+    List<BasicEventInfo> list = List();
+    for (var item in items)
+      list.add(BasicEventInfo.parse(
+          si.year, item, (elm) => elm.children[3].children[2].text));
     return list;
   }
 
-  Future<EventInfo> eventInfo(SearchResult sr) async {
+  Future<EventInfo> eventInfo(BasicEventInfo sr) async {
     String body = await _request(sr._urlPath());
     var doc = html.parse(body);
     return EventInfo.parse(doc);
+  }
+
+  Future<ClubInfo> clubInfo(String url) async {
+    String body = await _request(Uri.parse(url).path);
+    var doc = html.parse(body);
+    return ClubInfo.parse(doc);
   }
 }

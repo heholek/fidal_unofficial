@@ -77,7 +77,7 @@ class EventInfoWidget extends StatelessWidget {
 }
 
 void showEventBottomSheet(
-    BuildContext context, FidalApi api, SearchResult result) {
+    BuildContext context, FidalApi api, BasicEventInfo result) {
   var streamController = StreamController<EventInfoStatus>();
   api
       .eventInfo(result)
