@@ -175,15 +175,18 @@ class LinkedString {
 
   LinkedString(this.text, this.url);
 
-  static LinkedString parse(Map<String, html.Element> map, String key) {
+  static LinkedString parseFromMap(Map<String, html.Element> map, String key) {
     var val = map[key];
     if (val == null) return null;
+    return parse(val);
+  }
 
-    var a = val.querySelector("a");
+  static LinkedString parse(html.Element elm) {
+    var a = elm.querySelector("a");
     if (a != null)
       return LinkedString(a.text.trim(), a.attributes["href"]);
     else
-      return LinkedString(val.text.trim(), null);
+      return LinkedString(elm.text.trim(), null);
   }
 }
 
@@ -308,10 +311,10 @@ class EventInfo with WhenStartEndMixin {
         map["TIPOLOGIA"].text,
         optText(map, "ENTE"),
         map["LIVELLO"].text,
-        LinkedString.parse(map, "ORGANIZZATORE"),
-        LinkedString.parse(map, "ORGANIZZAZIONE"),
+        LinkedString.parseFromMap(map, "ORGANIZZATORE"),
+        LinkedString.parseFromMap(map, "ORGANIZZAZIONE"),
         optText(map, "EMAIL"),
-        LinkedString.parse(map, "SITO WEB"),
+        LinkedString.parseFromMap(map, "SITO WEB"),
         sex,
         map["LOCALITÀ"].querySelector("a").text,
         categories,
@@ -470,6 +473,107 @@ class ClubInfo {
   }
 }
 
+class AtheltePerformance {
+  final DateTime when;
+  final String type;
+  final String chrono;
+  final String category;
+  final String placing;
+  final String val;
+  final String wind;
+  final String location;
+
+  AtheltePerformance(this.when, this.type, this.chrono, this.category,
+      this.placing, this.val, this.wind, this.location);
+
+  static AtheltePerformance _parse(html.Element row) {
+    var whenStr = row.children[1].text + '/' + row.children[0].text;
+
+    return AtheltePerformance(
+        DateFormat("dd/MM/yyyy").parse(whenStr),
+        row.children[2].firstChild.text,
+        row.children[3].firstChild.text,
+        row.children[4].firstChild.text,
+        row.children[5].text,
+        row.children[6].text.trim(),
+        row.children[7].text,
+        row.children[8].text);
+  }
+
+  static Map<String, List<AtheltePerformance>> parse(html.Element tab2) {
+    var map = Map<String, List<AtheltePerformance>>();
+    String lastSpecialty;
+    for (var row in tab2.children) {
+      if (row.localName == "h2") {
+        lastSpecialty = row.text;
+        continue;
+      }
+
+      if (row.localName == "div" && lastSpecialty != null) {
+        List<AtheltePerformance> list = map[lastSpecialty];
+        if (list == null) {
+          list = List();
+          map[lastSpecialty] = list;
+        }
+
+        for (var perf in row.querySelectorAll("tbody tr"))
+          list.add(AtheltePerformance._parse(perf));
+
+        lastSpecialty = null;
+      }
+    }
+
+    return map;
+  }
+}
+
+class AthleteHistoryItem {
+  final String year;
+  final String reason;
+  final String category;
+  final LinkedString club;
+
+  AthleteHistoryItem(this.year, this.reason, this.category, this.club);
+
+  static AthleteHistoryItem _parse(html.Element row) {
+    return AthleteHistoryItem(row.children[0].text, row.children[1].text,
+        row.children[2].text, LinkedString.parse(row.children[3]));
+  }
+
+  static List<AthleteHistoryItem> parse(html.Element tab6) {
+    var list = List<AthleteHistoryItem>();
+    var rows = tab6.querySelectorAll("tbody tr");
+    for (var row in rows) list.add(_parse(row));
+    return list;
+  }
+}
+
+class AthleteInfo {
+  final String name;
+  final LinkedString club;
+  final DateTime birthday;
+  final Map<String, List<AtheltePerformance>> performances;
+  final List<AthleteHistoryItem> history;
+
+  AthleteInfo(
+      this.name, this.club, this.birthday, this.performances, this.history);
+
+  static AthleteInfo parse(html.Element elm) {
+    var header = elm.children[1].children[0];
+    var birthday = DateFormat("dd-MM-yyyy").parse(header.nodes[6].text.trim());
+
+    var tab2 = elm.querySelector("#tab2 .tab-holder");
+    var tab6 = elm.querySelector("#tab6 .tab-holder");
+
+    return AthleteInfo(
+        header.children[0].text,
+        LinkedString.parse(header.children[1]),
+        birthday,
+        AtheltePerformance.parse(tab2),
+        AthleteHistoryItem.parse(tab6));
+  }
+}
+
 class FidalApi {
   static final String _domain = "www.fidal.it";
   final http.Client _client;
@@ -535,5 +639,11 @@ class FidalApi {
     String body = await _request(Uri.parse(url).path);
     var doc = html.parse(body);
     return ClubInfo.parse(doc);
+  }
+
+  Future<AthleteInfo> athleteInfo(String url) async {
+    String body = await _request(Uri.parse(url).path);
+    var doc = html.parse(body);
+    return AthleteInfo.parse(doc.querySelector("#content .text-holder"));
   }
 }
