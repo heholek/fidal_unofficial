@@ -125,13 +125,16 @@ class SearchResult with WhenStartEndMixin {
       whenEnd = null;
     }
 
+    var desc = elm.children[3].children[2].text;
+    if (desc.trim().isEmpty) desc = null;
+
     return SearchResult(whenStart, whenEnd,
         level: level,
         type: elm.children[4].text,
         location: elm.children[5].text,
         name: a.text,
         url: a.attributes["href"],
-        desc: elm.children[3].children[2].text);
+        desc: desc);
   }
 
   String _urlPath() {
