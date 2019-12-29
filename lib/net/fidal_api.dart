@@ -341,7 +341,7 @@ class Athletes {
     String lastCategory;
     for (var elm in tab.children) {
       if (elm.localName == "h3") {
-        lastCategory = RegExp(r'.*\s\((.*)\)').firstMatch(elm.text)[1];
+        lastCategory = RegExp(r'.*\((.*)\)').firstMatch(elm.text)[1];
         continue;
       }
 
@@ -366,10 +366,13 @@ class Athletes {
     return map;
   }
 
-  static Athletes parse(html.Element tab2, html.Element tab3) {
-    var list = _parse(tab2);
-    list.addAll(_parse(tab3));
-    return Athletes(list);
+  static Athletes parse(
+      html.Element tab1, html.Element tab2, html.Element tab3) {
+    var map = Map<String, List<BasicAthleteInfo>>();
+    if (tab1 != null) map.addAll(_parse(tab1));
+    if (tab2 != null) map.addAll(_parse(tab2));
+    if (tab3 != null) map.addAll(_parse(tab3));
+    return Athletes(map);
   }
 }
 
@@ -428,6 +431,7 @@ class ClubInfo {
     var emailSpan = moreClubData[2].querySelector("span");
     var email = emailSpan.nodes[0].text + '@' + emailSpan.nodes[2].text;
 
+    var tab1 = doc.querySelector("#tab1 .tab-holder");
     var tab2 = doc.querySelector("#tab2 .tab-holder");
     var tab3 = doc.querySelector("#tab3 .tab-holder");
     var tab4 = doc.querySelector("#tab4 .tab-holder");
@@ -437,8 +441,13 @@ class ClubInfo {
     List<BasicEventInfo> events = List();
     var eventRows = tab4.querySelectorAll("tbody tr");
     for (var row in eventRows)
-      events.add(BasicEventInfo.parse(
-          yearNow, row, (elm) => elm.children[3].firstChild.nodes[2].text));
+      events.add(BasicEventInfo.parse(yearNow, row, (elm) {
+        var nodes = elm.children[3].firstChild.nodes;
+        if (nodes.length < 3)
+          return null;
+        else
+          return nodes[2].text;
+      }));
 
     List<ClubHistoryItem> historyItems = List();
     var historyRows = tab5.querySelectorAll("tbody tr");
@@ -455,7 +464,7 @@ class ClubInfo {
         substringAfterColon(moreClubData[1].text),
         substringAfterColon(moreClubData[3].text),
         email.trim(),
-        Athletes.parse(tab2, tab3),
+        Athletes.parse(tab1, tab2, tab3),
         events,
         historyItems);
   }
