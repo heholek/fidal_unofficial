@@ -847,6 +847,25 @@ class _RankingsDataSupplier {
   }
 }
 
+class EventSpecialitiesIndex {
+  final List<LinkedString> participants;
+  final List<LinkedString> results;
+
+  EventSpecialitiesIndex(this.participants, this.results);
+
+  static EventSpecialitiesIndex parse(html.Element table) {
+    var col1 = table.querySelectorAll("tbody td#idx_colonna1");
+    var participants = List<LinkedString>();
+    for (var td in col1) participants.add(LinkedString.parse(td));
+
+    var col2 = table.querySelectorAll("tbody td#idx_colonna2");
+    var results = List<LinkedString>();
+    for (var td in col2) results.add(LinkedString.parse(td));
+
+    return EventSpecialitiesIndex(participants, results);
+  }
+}
+
 class FidalApi {
   static const String PREFS_MIN_YEAR_KEY = "fidalEventSearch_minYear";
   static const String PREFS_MAX_YEAR_KEY = "fidalEventSearch_maxYear";
@@ -953,5 +972,12 @@ class FidalApi {
     String body = await _request(Uri.parse(url).path);
     var doc = html.parse(body);
     return AthleteInfo.parse(doc.querySelector("#content .text-holder"));
+  }
+
+  Future<EventSpecialitiesIndex> eventAthletesIndex(String url) async {
+    String body = await _request(Uri.parse(url).path);
+    var doc = html.parse(body);
+    var table = doc.querySelector(".tab_turno .TD_FINE").children[1];
+    return EventSpecialitiesIndex.parse(table);
   }
 }
