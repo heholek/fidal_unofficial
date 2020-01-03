@@ -1,5 +1,5 @@
 os: linux
-language: dart
+language: minimal
 addons:
   apt:
     sources:
