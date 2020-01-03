@@ -1,8 +1,7 @@
 import 'package:fidal_unofficial/net/fidal_api.dart';
 import 'package:flutter/material.dart';
 
-
-import 'search/page.dart';
+import 'event_search/page.dart';
 
 void main() => runApp(MyApp());
 

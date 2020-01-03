@@ -111,8 +111,8 @@ class SearchFieldsWidget extends StatefulWidget {
 }
 
 class SearchFieldsState extends State<SearchFieldsWidget> {
-  String year = SearchInfo.currentYear();
-  String month = SearchInfo.currentMonth();
+  String year = EventSearchInfo.currentYear();
+  String month = EventSearchInfo.currentMonth();
   String level = "";
   String region = "";
   String type = "";
@@ -121,7 +121,7 @@ class SearchFieldsState extends State<SearchFieldsWidget> {
 
   void notifySearchInfoUpdated() {
     widget.streamController.add(SearchStatus.startSearch(
-        SearchInfo(year, month, level, region, type, category, federal)));
+        EventSearchInfo(year, month, level, region, type, category, federal)));
   }
 
   static Map<String, String> generateMonthsMap() {

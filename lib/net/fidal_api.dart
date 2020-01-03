@@ -2,13 +2,13 @@ import 'dart:async';
 import 'dart:core';
 import 'dart:io';
 
-import 'package:html/parser.dart' as html;
 import 'package:html/dom.dart' as html;
+import 'package:html/parser.dart' as html;
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class SearchInfo {
+class EventSearchInfo {
   final String year;
   final String month;
   final String level;
@@ -25,7 +25,7 @@ class SearchInfo {
     return DateTime.now().month.toString();
   }
 
-  SearchInfo.defaultSearchInfo()
+  EventSearchInfo.defaultSearchInfo()
       : this.year = currentYear(),
         this.month = currentMonth(),
         this.level = "",
@@ -34,7 +34,7 @@ class SearchInfo {
         this.category = "",
         this.federal = false;
 
-  SearchInfo(this.year, this.month, this.level, this.region, this.type,
+  EventSearchInfo(this.year, this.month, this.level, this.region, this.type,
       this.category, this.federal);
 }
 
@@ -574,6 +574,85 @@ class AthleteInfo {
   }
 }
 
+abstract class SearchResult {
+  SearchResultType type();
+
+  static List<SearchResult> parse(html.Document doc) {
+    var tab1 = doc.querySelector("#tab1"); // Events
+    var tab2 = doc.querySelector("#tab2"); // Clubs
+    var tab4 = doc.querySelector("#tab4"); // Athletes
+
+    var list = List<SearchResult>();
+    if (tab1 != null) list.addAll(EventSearchResult.parse(tab1));
+    if (tab2 != null) list.addAll(ClubSearchResult.parse(tab2));
+    if (tab4 != null) list.addAll(AtheleteSearchResult.parse(tab4));
+    return list;
+  }
+}
+
+enum SearchResultType { EVENT, ATHLETE, CLUB }
+
+class EventSearchResult extends SearchResult {
+  final LinkedString name;
+  final String location;
+  final DateTime whenStart;
+
+  EventSearchResult(this.name, this.location, this.whenStart);
+
+  @override
+  SearchResultType type() => SearchResultType.EVENT;
+
+  static List<EventSearchResult> parse(html.Element tab) {
+    var list = List<EventSearchResult>();
+    for (var row in tab.querySelectorAll("tbody tr")) {
+      var when = DateFormat("dd/MM/yyyy").parse(row.children[3].text);
+      list.add(EventSearchResult(LinkedString.parse(row.children[1]),
+          row.children[2].text.trim(), when));
+    }
+    return list;
+  }
+}
+
+class ClubSearchResult extends SearchResult {
+  final LinkedString name;
+  final String region;
+  final String city;
+
+  ClubSearchResult(this.name, this.region, this.city);
+
+  @override
+  SearchResultType type() => SearchResultType.CLUB;
+
+  static List<ClubSearchResult> parse(html.Element tab) {
+    var list = List<ClubSearchResult>();
+    for (var row in tab.querySelectorAll("tbody tr")) {
+      list.add(ClubSearchResult(LinkedString.parse(row.children[1]),
+          row.children[2].text.trim(), row.children[3].text.trim()));
+    }
+    return list;
+  }
+}
+
+class AtheleteSearchResult extends SearchResult {
+  final LinkedString name;
+  final LinkedString club;
+  final String category;
+
+  AtheleteSearchResult(this.name, this.club, this.category);
+
+  @override
+  SearchResultType type() => SearchResultType.ATHLETE;
+
+  static List<AtheleteSearchResult> parse(html.Element tab) {
+    var list = List<AtheleteSearchResult>();
+    for (var row in tab.querySelectorAll("tbody tr")) {
+      list.add(AtheleteSearchResult(LinkedString.parse(row.children[1]),
+          LinkedString.parse(row.children[2]), row.children[3].text.trim()));
+    }
+    return list;
+  }
+}
+
 class FidalApi {
   static final String _domain = "www.fidal.it";
   final http.Client _client;
@@ -592,7 +671,7 @@ class FidalApi {
       throw HttpException("Bad status code: ${resp.statusCode}!", uri: uri);
   }
 
-  static void checkMinMaxYear(html.Document doc) async {
+  static void _checkMinMaxYear(html.Document doc) async {
     var sel = doc.querySelector("#calendario #anno");
 
     var pref = await SharedPreferences.getInstance();
@@ -602,7 +681,13 @@ class FidalApi {
         "fidalSearch_maxYear", sel.children[0].attributes["value"]);
   }
 
-  Future<List<BasicEventInfo>> search(SearchInfo si) async {
+  Future<List<SearchResult>> siteSearch(String keyword) async {
+    String body =
+        await _request("/result.php", {"cerca": keyword, "id_sito": "1"});
+    return SearchResult.parse(html.parse(body));
+  }
+
+  Future<List<BasicEventInfo>> eventSearch(EventSearchInfo si) async {
     String body = await _request("/calendario.php", {
       "anno": si.year,
       "mese": si.month,
@@ -619,7 +704,7 @@ class FidalApi {
       return List(0);
 
     var doc = html.parse(body);
-    checkMinMaxYear(doc);
+    _checkMinMaxYear(doc);
 
     var items = doc.querySelectorAll(".table_btm tbody tr");
     List<BasicEventInfo> list = List();

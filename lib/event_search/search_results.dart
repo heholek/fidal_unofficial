@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:fidal_unofficial/net/fidal_api.dart';
-import 'package:fidal_unofficial/search/event_bottom_sheet.dart';
+import 'package:fidal_unofficial/event_search/event_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
@@ -14,7 +14,7 @@ class SearchResultsWidget extends StatelessWidget {
   SearchResultsWidget(this._api, this.streamController) {
     streamController.stream.listen((status) {
       if (status.loading) {
-        _api.search(status.info).then(
+        _api.eventSearch(status.info).then(
             (result) => streamController.add(SearchStatus.successfull(result)),
             onError: (e) {
           print(e);
@@ -33,7 +33,7 @@ class SearchResultsWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     streamController
-        .add(SearchStatus.startSearch(SearchInfo.defaultSearchInfo()));
+        .add(SearchStatus.startSearch(EventSearchInfo.defaultSearchInfo()));
 
     asc = AutoScrollController(
         suggestedRowHeight: 76,
@@ -78,7 +78,7 @@ class SearchResultsWidget extends StatelessWidget {
 class SearchStatus {
   final bool error;
   final bool loading;
-  final SearchInfo info;
+  final EventSearchInfo info;
   final List<BasicEventInfo> data;
 
   SearchStatus.startSearch(this.info)
