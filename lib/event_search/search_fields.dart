@@ -56,11 +56,11 @@ class YearDropdownState extends State<YearDropdownWidget> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
     int yearNow = DateTime.now().year;
-    int minYear = prefs.containsKey("fidalSearch_minYear")
-        ? int.tryParse(prefs.getString("fidalSearch_minYear"))
+    int minYear = prefs.containsKey(FidalApi.PREFS_MIN_YEAR_KEY)
+        ? int.tryParse(prefs.getString(FidalApi.PREFS_MIN_YEAR_KEY))
         : null;
-    int maxYear = prefs.containsKey("fidalSearch_maxYear")
-        ? int.tryParse(prefs.getString("fidalSearch_maxYear"))
+    int maxYear = prefs.containsKey(FidalApi.PREFS_MAX_YEAR_KEY)
+        ? int.tryParse(prefs.getString(FidalApi.PREFS_MAX_YEAR_KEY))
         : null;
 
     if (minYear == null) minYear = yearNow - 9;

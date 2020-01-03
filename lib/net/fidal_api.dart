@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:core';
 import 'dart:io';
 
@@ -7,6 +8,130 @@ import 'package:html/parser.dart' as html;
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+class RankingsSearchInfo {
+  final String year;
+  final String type;
+  final String sex;
+  final String category;
+  final String speciality;
+  final String extraction;
+  final String wind;
+  final String region;
+  final String nationality;
+  final String limit;
+  final String clubCode;
+
+  RankingsSearchInfo(
+      this.year,
+      this.type,
+      this.sex,
+      this.category,
+      this.speciality,
+      this.extraction,
+      this.wind,
+      this.region,
+      this.nationality,
+      this.limit,
+      this.clubCode);
+}
+
+class RankingsHeader {
+  final String speciality;
+  final String year;
+  final String category;
+  final String type;
+  final String wind;
+  final String region;
+  final String nationality;
+
+  RankingsHeader(this.speciality, this.year, this.category, this.type,
+      this.wind, this.region, this.nationality);
+
+  static RankingsHeader parse(html.Element elm) {
+    var items = elm.querySelectorAll("tbody td");
+    return RankingsHeader(
+        items[0].text,
+        items[1].nodes[2].text,
+        items[2].nodes[2].text,
+        items[3].nodes.length > 2 ? items[3].nodes[2].text : null,
+        items[4].nodes[2].text,
+        items[5].nodes[2].text,
+        items[6].nodes[2].text);
+  }
+}
+
+class RankingsEntry {
+  final String performance;
+  final String wind;
+  final LinkedString athlete;
+  final String yearOfBirth;
+  final String category;
+  final LinkedString club;
+  final String placing;
+  final String location;
+  final DateTime when;
+
+  RankingsEntry(this.performance, this.wind, this.athlete, this.yearOfBirth,
+      this.category, this.club, this.placing, this.location, this.when);
+
+  static RankingsEntry parse(String year, html.Element elm) {
+    var category = elm.children[3].firstChild;
+    var whenStr = elm.children[7].firstChild.text.trim();
+    return RankingsEntry(
+        elm.children[0].text.trim(),
+        elm.children[1].text.trim(),
+        LinkedString.parse(elm.children[2]),
+        category.text,
+        category.attributes["title"],
+        LinkedString.parse(elm.children[4]),
+        elm.children[5].text.trim(),
+        elm.children[6].text.trim(),
+        DateFormat("dd/MM/yyyy").parse(whenStr + '/' + year));
+  }
+}
+
+class Rankings {
+  final String title;
+  final String desc;
+  final Map<RankingsHeader, List<RankingsEntry>> map;
+
+  Rankings(this.title, this.desc, this.map);
+
+  static Rankings parse(String year, html.Document doc) {
+    var elm = doc.querySelector("#content .text-holder");
+    if (elm == null) return null;
+
+    var map = Map<RankingsHeader, List<RankingsEntry>>();
+    var r = Rankings(
+        elm.querySelector("h1").text, elm.querySelector("h4").text, map);
+
+    RankingsHeader lastHeader;
+    for (var child in elm.children) {
+      if (child.localName == "table") {
+        lastHeader = RankingsHeader.parse(child);
+        continue;
+      }
+
+      if (child.localName == "div" && lastHeader != null) {
+        var list = map[lastHeader];
+        if (list == null) {
+          list = List<RankingsEntry>();
+          map[lastHeader] = list;
+        }
+
+        for (var row in child.querySelectorAll("tbody tr")) {
+          if (row.children.length < 8) continue;
+          list.add(RankingsEntry.parse(year, row));
+        }
+
+        lastHeader = null;
+      }
+    }
+
+    return r;
+  }
+}
 
 class EventSearchInfo {
   final String year;
@@ -653,11 +778,85 @@ class AtheleteSearchResult extends SearchResult {
   }
 }
 
+class _RankingsDataSupplier {
+  final FidalApi _api;
+  static const String _PREFS_KEY_PREFIX = "fidalDataSupplierCache_";
+  static const String _PREFS_KEY_CREATED_PREFIX =
+      "fidalDataSupplierCache_created_";
+
+  _RankingsDataSupplier(this._api);
+
+  static String _buildCacheKey(String year,
+      [String type, String sex, String category]) {
+    var key = year;
+    if (type != null) {
+      key += ",$type";
+      if (sex != null) {
+        key += ",$sex";
+        if (category != null) {
+          key += ",$category";
+        }
+      }
+    }
+    return key;
+  }
+
+  void _putCache(Map<String, String> data, String year,
+      [String type, String sex, String category]) async {
+    var prefs = await SharedPreferences.getInstance();
+    var key = _buildCacheKey(year, type, sex, category);
+
+    await prefs.setString(_PREFS_KEY_PREFIX + key, jsonEncode(data));
+    await prefs.setInt(
+        _PREFS_KEY_CREATED_PREFIX + key, DateTime.now().millisecondsSinceEpoch);
+  }
+
+  Future<Map<String, String>> _hitCache(String year,
+      [String type, String sex, String category]) async {
+    var prefs = await SharedPreferences.getInstance();
+
+    var key = _buildCacheKey(year, type, sex, category);
+    var value = prefs.getString(_PREFS_KEY_PREFIX + key);
+    if (value == null || value.isEmpty) return null;
+
+    var createdAt = prefs.getInt(_PREFS_KEY_CREATED_PREFIX + key);
+    if (DateTime.now().millisecondsSinceEpoch - createdAt > 12 * 3600 * 1000) {
+      await prefs.remove(_PREFS_KEY_PREFIX + key);
+      await prefs.remove(_PREFS_KEY_CREATED_PREFIX + key);
+      return null;
+    }
+
+    return jsonDecode(value) as Map<String, String>;
+  }
+
+  Future<Map<String, String>> lookup(String year,
+      [String type, String sex, String category]) async {
+    var params = {"anno": year};
+    if (type != null) params["tipo_attivita"] = type;
+    if (type != null && sex != null) params["sesso"] = sex;
+    if (type != null && sex != null && category != null)
+      params["categoria"] = category;
+
+    var cache = _hitCache(year, type, sex, category);
+    if (cache != null) return cache;
+
+    var result = jsonDecode(await _api._request("/datasupplier.php", params))
+        as Map<String, String>;
+    _putCache(result, year, type, sex, category);
+    return result;
+  }
+}
+
 class FidalApi {
+  static const String PREFS_MIN_YEAR_KEY = "fidalEventSearch_minYear";
+  static const String PREFS_MAX_YEAR_KEY = "fidalEventSearch_maxYear";
   static final String _domain = "www.fidal.it";
   final http.Client _client;
+  _RankingsDataSupplier _rds;
 
-  FidalApi() : _client = http.Client();
+  FidalApi() : _client = http.Client() {
+    _rds = _RankingsDataSupplier(this);
+  }
 
   Future<String> _request(String path, [Map<String, String> params]) async {
     var uri = Uri.http(_domain, path, params);
@@ -675,10 +874,34 @@ class FidalApi {
     var sel = doc.querySelector("#calendario #anno");
 
     var pref = await SharedPreferences.getInstance();
-    await pref.setString("fidalSearch_minYear",
+    await pref.setString(PREFS_MIN_YEAR_KEY,
         sel.children[sel.children.length - 1].attributes["value"]);
     await pref.setString(
-        "fidalSearch_maxYear", sel.children[0].attributes["value"]);
+        PREFS_MAX_YEAR_KEY, sel.children[0].attributes["value"]);
+  }
+
+  Future<Rankings> rankings(RankingsSearchInfo si) async {
+    String body = await _request("/graduatorie.php", {
+      "anno": si.year,
+      "tipo_attivita": si.type,
+      "sesso": si.sex,
+      "categoria": si.category,
+      "gara": si.speciality,
+      "tipologia_estrazione": si.extraction,
+      "vento": si.wind,
+      "regione": si.region,
+      "nazionalita": si.nationality,
+      "limite": si.limit,
+      "societa": si.clubCode,
+      "submit": "Invia"
+    });
+
+    return Rankings.parse(si.year, html.parse(body));
+  }
+
+  Future<Map<String, dynamic>> rankingsDataSupplier(String year,
+      [String type, String sex, String category]) async {
+    return await _rds.lookup(year, type, sex, category);
   }
 
   Future<List<SearchResult>> siteSearch(String keyword) async {

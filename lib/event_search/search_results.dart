@@ -37,8 +37,10 @@ class SearchResultsWidget extends StatelessWidget {
 
     asc = AutoScrollController(
         suggestedRowHeight: 76,
-        viewportBoundaryGetter: () =>
-            Rect.fromLTRB(0, 0, 0, MediaQuery.of(context).padding.bottom),
+        viewportBoundaryGetter: () {
+          var mqp = MediaQuery.of(context).padding;
+          return Rect.fromLTRB(mqp.left, mqp.top, mqp.right, mqp.bottom);
+        },
         axis: Axis.vertical);
 
     return StreamBuilder<SearchStatus>(
