@@ -847,13 +847,13 @@ class _RankingsDataSupplier {
   }
 }
 
-class EventSpecialitiesIndex {
+class EventSummaryIndex {
   final List<LinkedString> participants;
   final List<LinkedString> results;
 
-  EventSpecialitiesIndex(this.participants, this.results);
+  EventSummaryIndex(this.participants, this.results);
 
-  static EventSpecialitiesIndex parse(html.Element table) {
+  static EventSummaryIndex parse(html.Element table) {
     var col1 = table.querySelectorAll("tbody td#idx_colonna1");
     var participants = List<LinkedString>();
     for (var td in col1) participants.add(LinkedString.parse(td));
@@ -862,8 +862,16 @@ class EventSpecialitiesIndex {
     var results = List<LinkedString>();
     for (var td in col2) results.add(LinkedString.parse(td));
 
-    return EventSpecialitiesIndex(participants, results);
+    return EventSummaryIndex(participants, results);
   }
+}
+
+class EventSpecialityAthletes {
+  
+}
+
+class EventSpecialityResults {
+  
 }
 
 class FidalApi {
@@ -974,10 +982,10 @@ class FidalApi {
     return AthleteInfo.parse(doc.querySelector("#content .text-holder"));
   }
 
-  Future<EventSpecialitiesIndex> eventAthletesIndex(String url) async {
+  Future<EventSummaryIndex> eventAthletesIndex(String url) async {
     String body = await _request(Uri.parse(url).path);
     var doc = html.parse(body);
     var table = doc.querySelector(".tab_turno .TD_FINE").children[1];
-    return EventSpecialitiesIndex.parse(table);
+    return EventSummaryIndex.parse(table);
   }
 }
